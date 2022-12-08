@@ -1,0 +1,16 @@
+.avatar {
+  display: flex;
+  align-items: center;
+  padding: 0 0 0 15px;
+  position: relative;
+
+  img {
+    border-radius: 50%;
+  }
+}
+
+.icon {
+  right: -24px;
+  cursor: pointer;
+  position: absolute;
+}

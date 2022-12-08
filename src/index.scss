@@ -1,0 +1,43 @@
+html, body {
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+}
+
+body {
+  margin: 0;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  scroll-behavior: smooth;
+}
+
+code {
+  font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
+  monospace;
+}
+
+input {
+  outline: none !important;
+}
+
+.narrow-page-container {
+  width: calc((100% - 32px) * 0.8);
+}
+
+.wide-page-container {
+  width: calc((100% - 32px) * 1);
+}
+
+.small {
+  font-size: 80%;
+}
+
+.gray {
+  color: #999;
+}
+
+.wide-btn {
+  width: 100%;
+}

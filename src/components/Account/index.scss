@@ -1,0 +1,28 @@
+.account-wrapper {
+  width: 256px;
+  display: flex;
+  height: 34px;
+  justify-content: flex-end;
+  align-items: center;
+  .description {
+    font-size: 80%;
+    text-align: right;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    height: max-content;
+  }
+  & > div {
+    display: flex;
+
+  }
+}
+.waves-icon {
+  display: flex;
+  width: 25px;
+  height: 25px;
+  align-items: center;
+  justify-content: center;
+  font-weight: 800;
+  cursor: pointer;
+}

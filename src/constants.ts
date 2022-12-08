@@ -1,0 +1,3 @@
+export const SWOPFI_WAVES_USDN_CONTRACT = '3PHaNgomBkrvEL2QnuJarQVJa71wjw9qiqG'
+export const STK_WAVES_CONTRACT = '3MsN1Q6UqKokdBUxv9Azrh5CGSAQ3UQzTsu'
+export const STK_WAVES_ASSET_ID = '3WsH6HFPJs3DkaiipDU4HKJQG4GjVPt4bVjfaE98K6xa'

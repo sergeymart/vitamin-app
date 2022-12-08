@@ -1,0 +1,30 @@
+.amount-input {
+  .input-wrapper {
+    position: relative;
+
+    > button {
+      position: absolute;
+      right: 16px;
+      top: 8px;
+      outline: none;
+      margin: 0;
+      padding: 0;
+    }
+  }
+
+  .labels {
+    display: flex;
+    justify-content: space-between;
+  }
+
+  label {
+    margin-bottom: 0;
+  }
+
+  .labels > label:last-child {
+    text-align: right;
+  }
+
+  margin-bottom: 1rem;
+  margin-top: 1rem;
+}
