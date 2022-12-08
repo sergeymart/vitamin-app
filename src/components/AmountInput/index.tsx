@@ -15,7 +15,7 @@ interface IProps {
 }
 
 interface IState {
-  value: number
+  value: string
 }
 
 @inject('accountStore', 'notificationStore', 'dappStore')
@@ -23,12 +23,12 @@ interface IState {
 class AmountInput extends React.Component<IProps, IState> {
 
   state = {
-    value: 0,
+    value: '0',
   }
 
   setMax() {
     const value = this.countAmount(this.props.source)
-    this.setState({ ...this.state, value })
+    this.setState({ ...this.state, value: value.toString() })
     this.props.onChange(value)
   }
 
@@ -41,12 +41,13 @@ class AmountInput extends React.Component<IProps, IState> {
 
   countYouGet() {
     const rate = this.props.dappStore!.rate
-    return (this.state.value * (this.props.target === 'WAVES' ? rate : 1 / rate)).toFixed(8)
+    return (+this.state.value * (this.props.target === 'WAVES' ? rate : 1 / rate)).toFixed(8)
   }
 
   onChange(e: React.ChangeEvent<HTMLInputElement>) {
-    const value = +e.target.value
-    this.props.onChange(value)
+    const value = e.target.value.replace(/[^.\d]/g, '')
+      .replace(/^(\d*\.?)|(\d*)\.?/g, '$1$2')
+    this.props.onChange(+value)
     this.setState({ ...this.state, value })
   }
 

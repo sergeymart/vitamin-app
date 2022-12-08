@@ -13,6 +13,31 @@ body {
   scroll-behavior: smooth;
 }
 
+body {
+  .Toastify__toast-theme--light {
+    .nes-text.error {
+      color: #e76e55;
+    }
+    .nes-text.success {
+      color: #92cc41;
+    }
+    .nes-text.warning {
+      color: #f7d51d;
+    }
+    .nes-text.info {
+      color: #212529;
+    }
+    .nes-icon.is-small {
+      margin-right: 8px;
+    }
+  }
+
+  .Toastify__toast {
+    font: inherit !important;
+    font-size: 80% !important;
+  }
+}
+
 code {
   font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
   monospace;

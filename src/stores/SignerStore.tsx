@@ -70,6 +70,7 @@ class SignerStore extends SubStore {
       this.isApplicationAuthorizedInWavesExchange = true
       this.rootStore.accountStore.loginType = ELoginType.EXCHANGE
       this.rootStore.accountStore.address = account.address
+      await this.rootStore.accountStore.checkScripted()
     }
   }
 
@@ -105,20 +106,20 @@ class SignerStore extends SubStore {
 
   @action
   async sendTx({ data: tx }: any, opts: { notStopWait?: boolean } = {}) {
-    if ('payment' in tx) {
-      tx.payment = tx.payment.map(({ tokens: amount, assetId }: any) => {
-          const decimals = this.rootStore.accountStore.assets[assetId].decimals
-          return ({ amount: new Decimal(10).pow(decimals).mul(+amount).toNumber(), assetId })
-        },
-      )
-    }
-    if ('fee' in tx) {
-      delete tx.feeAssetId
-      delete tx.fee
-      // tx.fee = new Decimal(10).pow(8).mul(+this.rootStore.accountStore.fee).toNumber();
-    }
-
     try {
+
+      if ('payment' in tx) {
+        tx.payment = tx.payment.map(({ tokens: amount, assetId }: any) => {
+            const decimals = this.rootStore.accountStore.assets[assetId].decimals
+            return ({ amount: new Decimal(10).pow(decimals).mul(+amount).toNumber(), assetId })
+          },
+        )
+      }
+      if ('fee' in tx) {
+        delete tx.feeAssetId
+        delete tx.fee
+        // tx.fee = new Decimal(10).pow(8).mul(+this.rootStore.accountStore.fee).toNumber();
+      }
       let txId
 
       delete tx.fee

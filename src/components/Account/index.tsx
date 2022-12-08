@@ -5,7 +5,7 @@ import { AccountStore } from '@stores'
 import HistoryStore from '@stores/HistoryStore'
 import NotificationStore from '@stores/NotificationStore'
 import SignerStore from '@stores/SignerStore'
-import { Address, Avatar } from '@components'
+import { Address } from '@components'
 import './index.scss'
 
 interface IProps {
@@ -60,10 +60,12 @@ export default class Account extends React.Component<IProps, IState> {
     const props = this.props
 
     const { address, network } = props.accountStore!
-    const pathname = props.historyStore!.currentPath
-    const networkByAddress = props.accountStore!.getNetworkByAddress(pathname)
 
-    const isInvalidServer = networkByAddress && network && networkByAddress.code !== network.code
+    let isInvalidServer
+    if (address && network) {
+      const networkByAddress = props.accountStore!.getNetworkByAddress(address)
+      isInvalidServer = networkByAddress && network && networkByAddress.code !== network.code
+    }
 
     return <div className={'account-wrapper'}>{
       address && network

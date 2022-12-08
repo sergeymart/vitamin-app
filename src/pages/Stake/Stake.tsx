@@ -5,11 +5,12 @@ import Hero from '@components/Hero'
 import AmountInput from '@components/AmountInput'
 import StakingStat from '@components/StakingStat'
 import { STK_WAVES_ASSET_ID } from '@src/constants'
-import { AccountStore, DappStore } from '@stores'
+import { AccountStore, DappStore, NotificationStore } from '@stores'
 
 interface IInjectedProps {
   accountStore?: AccountStore
   dappStore?: DappStore
+  notificationStore?: NotificationStore
 }
 
 interface IProps extends IInjectedProps, RouteComponentProps {
@@ -19,7 +20,7 @@ interface IState {
   value: number
 }
 
-@inject('accountStore', 'dappStore')
+@inject('accountStore', 'dappStore', 'notificationStore')
 @observer
 class StakeComponent extends React.Component<IProps, IState> {
 
@@ -28,7 +29,14 @@ class StakeComponent extends React.Component<IProps, IState> {
   handleChange = (value: number) => this.setState({ value })
 
   sendStakeTx = async () => {
-    alert(this.state.value)
+    if (!this.props.accountStore!.isAuthorized) {
+      this.props.notificationStore!.isOpenLoginDialog = true
+      return
+    }
+    await this.props.dappStore!.callCallableFunction('stake', [], [{
+      amount: +(this.state.value * 1e8).toFixed(0),
+      assetId: 'WAVES'
+    }])
   }
 
   render() {

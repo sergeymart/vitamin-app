@@ -1,56 +1,24 @@
-import { base58Decode, base64Encode } from '@waves/ts-lib-crypto'
-
-import { ELoginType, ICallableArgumentType } from '@src/interface'
+import { ELoginType } from '@src/interface'
 
 import { SubStore } from './SubStore'
 import { action, computed, observable } from 'mobx'
 import { RootStore } from '@stores/RootStore'
 import { checkSlash } from '@utils'
-import { STK_WAVES_ASSET_ID, STK_WAVES_CONTRACT, SWOPFI_WAVES_USDN_CONTRACT } from '@src/constants'
+import BigNumber from 'bignumber.js'
+import { PRECISION, STK_WAVES_ASSET_ID, STK_WAVES_CONTRACT, SWOPFI_WAVES_USDN_CONTRACT } from '@src/constants'
 
-interface IKeeperTransactionDataCallArg {
+interface IArgument {
   type: string,
   value: string | number | boolean | { type: string, value: string | number | boolean }[]
 }
 
-interface IKeeperTransactionDataCall {
-  function: string,
-  args: IKeeperTransactionDataCallArg[]
-}
-
-interface IKeeperTransactionDataFee {
-  tokens: string,
-  assetId: string
-}
-
-interface IKeeperTransactionPayment {
+interface IPayment {
   assetId: string,
-  tokens: number
+  amount: number
 }
 
-interface IKeeperTransactionData {
-  dApp: string,
-  call: IKeeperTransactionDataCall,
-  payment: IKeeperTransactionPayment[]
-  fee: IKeeperTransactionDataFee,
-}
-
-export interface IKeeperTransaction {
-  type: number,
-  data: IKeeperTransactionData
-}
-
-export interface IArgument {
-  type: ICallableArgumentType,
-  value: string | undefined | IArgumentInput[]
-  byteVectorType?: 'base58' | 'base64'
-}
-
-export interface IArgumentInput {
-  type: ICallableArgumentType,
-  value: string | undefined
-  byteVectorType?: 'base58' | 'base64'
-}
+// https://nodes-testnet.wavesnodes.com/transactions/info/6GXYoHHkHzpYq94pXYaQsSgMVkedwgFnp1VJEiqeRqFz
+// https://api-testnet.wavesplatform.com/v0/transactions/invoke-script?sender=3N1WbxZTdjLm3L8faJGiCTRk3kfaAofzd16&dapp=3MsN1Q6UqKokdBUxv9Azrh5CGSAQ3UQzTsu&sort=desc&limit=100
 
 class DappStore extends SubStore {
 
@@ -68,15 +36,14 @@ class DappStore extends SubStore {
   }
 
   async update() {
-    // @todo rate updater
     try {
       if (!this.rootStore.accountStore.network) return
-      this.rate = await this.getRate() as any // +((Math.random() / 1000).toFixed(8))
-      this.stakers = await this.getStakersNum() as any
-      this.totalStaked = await this.getTotalStaked() as any
-      this.apr = await this.getApr() as any
+      this.rate = await this.getRate() as number
+      this.stakers = await this.getStakersNum() as number
+      this.totalStaked = await this.getTotalStaked() as number
+      this.apr = await this.getApr() as number
     } catch (e) {
-      console.log(e)
+      this.rootStore.notificationStore.notify(`${e.name} ${e.message}`, { type: 'error' })
     }
   }
 
@@ -87,114 +54,80 @@ class DappStore extends SubStore {
   @action
   async getStakersNum() {
     if (!this.rootStore.accountStore.network) return
-    try {
-      const server = this.rootStore.accountStore.network.server
-      const { height } = await fetch(`${checkSlash(server)}blocks/height`).then(r => r.json())
-      const path = `${checkSlash(server)}assets/${STK_WAVES_ASSET_ID}/distribution/${height - 5}/limit/1000`
-      const { items } = await fetch(path).then(r => r.json())
-      return +Object.entries(items).length
-    } catch (e) {
-      console.log(e)
-    }
+    const server = this.rootStore.accountStore.network.server
+    const { height } = await fetch(`${checkSlash(server)}blocks/height`).then(r => r.json())
+    const path = `${checkSlash(server)}assets/${STK_WAVES_ASSET_ID}/distribution/${height - 5}/limit/1000`
+    const { items } = await fetch(path).then(r => r.json())
+    return +Object.entries(items).length
   }
 
   @action
   async getTotalStaked() {
     if (!this.rootStore.accountStore.network) return
-    try {
-      const server = this.rootStore.accountStore.network.server
-      const { value } = await fetch(`${checkSlash(server)}addresses/data/${STK_WAVES_CONTRACT}/k_balance`).then(r => r.json())
-      return +value
-    } catch (e) {
-      console.log(e)
-    }
+    const server = this.rootStore.accountStore.network.server
+    const { value } = await fetch(`${checkSlash(server)}addresses/data/${STK_WAVES_CONTRACT}/k_balance`).then(r => r.json())
+    return +value
   }
 
   @action
   async getApr() {
     if (!this.rootStore.accountStore.network) return
-    try {
-      const server = this.rootStore.accountStore.network.server
-      const { value } = await fetch(`${checkSlash(server)}addresses/data/${STK_WAVES_CONTRACT}/k_growthRate`).then(r => r.json())
-      return +(+value * 86400 / 1e8)
-    } catch (e) {
-      console.log(e)
-    }
-  }  @action
+    const server = this.rootStore.accountStore.network.server
+    const { value } = await fetch(`${checkSlash(server)}addresses/data/${STK_WAVES_CONTRACT}/k_growthRate`).then(r => r.json())
+    return +(+(value || 0) * 86400 / PRECISION)
+  }
+
+  @action
   async getRate() {
     if (!this.rootStore.accountStore.network) return
-    try {
-      const server = this.rootStore.accountStore.network.server
-      const { value } = await fetch(`${checkSlash(server)}addresses/data/${STK_WAVES_CONTRACT}/k_lastRate`).then(r => r.json())
-      return +(+value / 1e18)
-    } catch (e) {
-      console.log(e)
-    }
+    const server = this.rootStore.accountStore.network.server
+    const path = `${checkSlash(server)}addresses/data/${STK_WAVES_CONTRACT}`
+    const [{ value: lastRate }, { value: growthRate }, { value: lastCompoundTime }] = await fetch(path, {
+      method: 'POST',
+      headers: {
+        'Accept': 'application/json',
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        keys: [
+          'k_lastRate',
+          'k_growthRate',
+          'k_lastCompoundTime',
+        ],
+      }),
+    }).then(r => r.json())
+
+    const now = Math.floor(Date.now() / 1000)
+    const dt = now > lastCompoundTime + 86400 ? 86400 : now - lastCompoundTime
+    const rate = new BigNumber(growthRate).times(dt).plus(lastRate).div(PRECISION).toNumber()
+    return rate
   }
 
   @action
   async updateWavesRate() {
-    // @todo here only prod
-    try {
-      const path = `${checkSlash('https://nodes.swop.fi')}addresses/data/${SWOPFI_WAVES_USDN_CONTRACT}`
-      const [{ value: waves }, { value: usdn }] = await fetch(path, {
-        method: 'POST',
-        headers: {
-          'Accept': 'application/json',
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          keys: [
-            'A_asset_balance',
-            'B_asset_balance',
-          ],
-        }),
-      }).then(r => r.json())
-      const rate = 1 / (waves / usdn / 100)
-      this.wavesRate = rate
-    } catch (e) {
-      console.log(e)
-    }
+    const path = `${checkSlash('https://nodes.swop.fi')}addresses/data/${SWOPFI_WAVES_USDN_CONTRACT}`
+    const [{ value: waves }, { value: usdn }] = await fetch(path, {
+      method: 'POST',
+      headers: {
+        'Accept': 'application/json',
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        keys: [
+          'A_asset_balance',
+          'B_asset_balance',
+        ],
+      }),
+    }).then(r => r.json())
+    const rate = 1 / (waves / usdn / 100)
+    this.wavesRate = rate
   }
 
-  private convertArgValue = (arg: IArgumentInput): (string | number | boolean) => {
-    const { value, type, byteVectorType } = arg
-    if (value === undefined) {
-      this.rootStore.notificationStore.notify('value is undefined', { type: 'error' })
-      return ''
-    }
-    if (type === 'Boolean' && ['true', 'false'].includes(value)) return value === 'true'
-    if (type === 'Int' && !isNaN(+value)) return +value
-    if (byteVectorType === 'base58') return `base64:${b58strTob64Str(value as string)}`
-    if (byteVectorType === 'base64') return `base64:${value}`
-    else return value
-  }
-
-  private convertArgValueList = (value: IArgumentInput[]): IArgumentInput[] => value.map(item => {
-    return { ...item, type: convertArgType(item.type), value: this.convertArgValue(item) } as IArgumentInput
-  })
-
-  private convertArgs = (args: IArgument[]): IKeeperTransactionDataCallArg[] =>
-    args.filter(({ value }) => value !== undefined || !(value as unknown as IArgumentInput[]).some(item => item.value === undefined))
-      .map(arg => {
-        const convertedValue = arg.type.startsWith('List')
-          ? this.convertArgValueList(arg.value as IArgumentInput[])
-          : this.convertArgValue(arg as IArgumentInput)
-        return ({ type: convertArgType(arg.type), value: convertedValue } as IKeeperTransactionDataCallArg)
-      })
-
-  callCallableFunction = (address: string, func: string, inArgs: IArgument[], payment: IKeeperTransactionPayment[]) => {
+  callCallableFunction = (func: 'stake' | 'unstake', args: IArgument[], payment: IPayment[]) => {
     const { accountStore } = this.rootStore
-    let args: IKeeperTransactionDataCallArg[] = []
-    try {
-      args = this.convertArgs(inArgs)
-    } catch (e) {
-      console.error(e)
-      this.rootStore.notificationStore.notify(e, { type: 'error' })
-    }
 
-    const transactionData: IKeeperTransactionData = {
-      dApp: address,
+    const transactionData = {
+      dApp: STK_WAVES_CONTRACT,
       call: {
         function: func,
         args,
@@ -203,7 +136,7 @@ class DappStore extends SubStore {
       payment,
     }
 
-    const tx: IKeeperTransaction = {
+    const tx = {
       type: 16,
       data: transactionData,
     }
@@ -220,68 +153,6 @@ class DappStore extends SubStore {
     if (accountStore.loginType === ELoginType.EXCHANGE) this.rootStore.signerStore.sendTx(tx)
 
   }
-
-  getTransactionJson = (address: string, func: string, inArgs: IArgument[], payment: IKeeperTransactionPayment[]) => {
-    const { accountStore } = this.rootStore
-    let args: IKeeperTransactionDataCallArg[] = []
-    try {
-      args = this.convertArgs(inArgs)
-    } catch (e) {
-      console.error(e)
-      this.rootStore.notificationStore.notify(e, { type: 'error' })
-    }
-
-    const transactionData: IKeeperTransactionData = {
-      dApp: address,
-      call: {
-        function: func,
-        args,
-      },
-      fee: { tokens: this.rootStore.accountStore.fee, assetId: 'WAVES' },
-      payment,
-    }
-
-    const tx: IKeeperTransaction = {
-      type: 16,
-      data: transactionData,
-    }
-
-    if (!accountStore.isAuthorized || !accountStore.loginType) {
-      this.rootStore.notificationStore.notify('Application is not authorized', { type: 'warning' })
-      return
-    }
-
-    if (accountStore.loginType === 'keeper') {
-      return this.rootStore.keeperStore.buildTx(tx)
-    }
-
-    if (accountStore.loginType === 'exchange') this.rootStore.signerStore.buildTx(tx)
-
-  }
-}
-
-export function b58strTob64Str(str = ''): string {
-  const error = 'incorrect base58'
-  try {
-    return base64Encode(base58Decode(str))
-  } catch (e) {
-    throw error
-  }
-}
-
-function convertArgType(type: ICallableArgumentType | string): string {
-  if (type.startsWith('List')) return 'list'
-  switch (type) {
-    case 'Boolean':
-      return 'boolean'
-    case 'ByteVector':
-      return 'binary'
-    case 'Int':
-      return 'integer'
-    case 'String':
-      return 'string'
-  }
-  return type
 }
 
 export default DappStore

@@ -8,6 +8,8 @@ import { RootStore } from '@stores/RootStore'
 import { ELoginType } from '@src/interface'
 
 import { SubStore } from './SubStore'
+import { DATA_SERVICE_URL, STK_WAVES_CONTRACT } from '@src/constants'
+import { nodeInteraction } from '@waves/waves-transactions'
 
 class AccountStore extends SubStore {
   @observable assets: { [name: string]: IAsset } = { 'WAVES': { name: 'WAVES', assetId: 'WAVES', decimals: 8, balance: 0, quantity: 0 } }
@@ -26,6 +28,7 @@ class AccountStore extends SubStore {
     if (this.address) {
       await this.updateAccountAssets(this.address)
       await this.rootStore.dappStore.update.call(this.rootStore.dappStore)
+      // this.getAccountTxs() // @todo
     }
   }
 
@@ -36,6 +39,13 @@ class AccountStore extends SubStore {
 
   @computed get fee() {
     return this.scripted ? '0.009' : '0.005'
+  }
+
+  @action
+  async checkScripted() {
+    if (this.network && this.address) {
+      this.scripted = (await nodeInteraction.scriptInfo(this.address, this.network.server)).script != null
+    }
   }
 
   @action
@@ -80,6 +90,13 @@ class AccountStore extends SubStore {
       ...assets.balances.reduce((acc, { assetId, balance, issueTransaction: { quantity, name, decimals } }) =>
         ({ ...acc, [assetId]: { assetId, decimals, balance, quantity, name } }), {}),
     }
+  }
+  @action
+  async getAccountTxs() {
+    if (!this.network) return
+    const path = `${checkSlash(DATA_SERVICE_URL)}v0/transactions/invoke-script?sender=${this.address}&dapp=${STK_WAVES_CONTRACT}&sort=desc&limit=100`
+    const resp = await fetch(path)
+    console.log(resp)
   }
 
   getNetworkByAddress = (address: string): INetwork | null => {

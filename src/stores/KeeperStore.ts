@@ -66,7 +66,7 @@ class KeeperStore extends SubStore {
       this.updateNetwork(publicState)
       this.rootStore.accountStore.address = publicState.account.address
       this.rootStore.accountStore.loginType = ELoginType.KEEPER
-
+      await this.rootStore.accountStore.checkScripted()
     }
     return resp
   }
@@ -74,8 +74,6 @@ class KeeperStore extends SubStore {
   @action
   updateWavesKeeperAccount = async (publicState: any) => {
     this.rootStore.accountStore.scripted = (await nodeInteraction.scriptInfo(publicState.account.address, publicState.network.server)).script != null
-    const scripted = (await nodeInteraction.scriptInfo(publicState.account.address, publicState.network.server)).script
-    console.log('scripted', scripted)
     this.wavesKeeperAccount && set(this.wavesKeeperAccount, {
       ...publicState.account,
     })
@@ -177,7 +175,6 @@ class KeeperStore extends SubStore {
     const { network } = this.rootStore.accountStore
     const { notificationStore } = this.rootStore
     const link = network ? getExplorerLink(network!.code, transaction.id, 'tx') : undefined
-    console.dir(transaction)
     notificationStore.notify(`Transaction sent: ${transaction.id}\n`, { type: 'info' })
 
     const res = await waitForTx(transaction.id, { apiBase: network!.server }) as any

@@ -4,7 +4,7 @@ import { inject, observer } from 'mobx-react'
 import HistoryStore from '@stores/HistoryStore'
 import { autorun } from 'mobx'
 import { NotificationStore } from '@stores/index'
-import { Link } from 'react-router-dom'
+import { NavLink } from 'react-router-dom'
 import './index.scss'
 
 interface IProps {
@@ -22,16 +22,14 @@ export default class Navbar extends React.Component<IProps, { value: string }> {
     autorun(() => this.setState({ value: this.props.historyStore!.currentPath }))
   }
 
-  handleKeyPress = (e: React.KeyboardEvent) => e.key === 'Enter' && this.props.historyStore!.handleSearch(this.state.value || '')
   handleChange = ({ target: { value } }: React.ChangeEvent<HTMLInputElement>) => this.setState({ value })
 
   render() {
-    const { value } = this.state
     return <div className={'navbar'}>
-      <Link to={'/'}>Stake</Link>
-      <Link to={'/unstake'}>Unstake</Link>
+      <NavLink to={'/stake'} activeClassName={'active'}>Stake</NavLink>
+      <NavLink to={'/unstake'} activeClassName={'active'}>Unstake</NavLink>
       {/*<Link to={'/defi'}>Defi for stkWaves</Link>*/}
-      <Link to={'/account'}>Account</Link>
+      <NavLink to={'/account'} activeClassName={'active'}>Account</NavLink>
       <Account/>
     </div>
   }

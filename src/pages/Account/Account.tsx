@@ -43,8 +43,6 @@ class AccountComponent extends React.Component<IProps, IState> {
   handleChange = ({ target: { value } }: React.ChangeEvent<HTMLInputElement>) => this.setState({ value })
 
   render() {
-    const { value } = this.state
-
     return <div className={'wide-page-container'}>
       <Hero><h1>WAVES Liquid staking analytics</h1></Hero>
     </div>
