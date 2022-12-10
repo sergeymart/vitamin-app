@@ -14,33 +14,6 @@ interface IProps {
   notificationStore?: NotificationStore
 }
 
-// const Title = styled.div`
-//   display: flex;
-//   justify-content: center;
-//   align-items: center;
-// @include Body-4Basic900Centr;
-//   padding-bottom: 24px;
-// `
-//
-//
-// const Body = styled.div`
-//   display: flex;
-//   flex-direction: column;
-//   justify-content: space-around;
-//   height: 100%;
-//   margin: 0 -4px;
-//
-//   & > * {
-//     margin: 0 4px;
-//     flex: 1;
-//   }
-// `
-//
-// const Description = styled.div`
-//   ${fonts.footerFont};
-//   //text-align: left;
-// `
-
 @inject('accountStore', 'notificationStore', 'signerStore', 'keeperStore')
 @observer
 export default class SignDialog extends React.Component <IProps> {
@@ -86,23 +59,6 @@ export default class SignDialog extends React.Component <IProps> {
     }
   }
 
-  // <!-- Rounded dialog -->
-  // <section>
-  //   <button type="button" class="nes-btn is-primary" onclick="document.getElementById('dialog-rounded').showModal();">
-  //     Open rounded dialog
-  //   </button>
-  //   <dialog class="nes-dialog is-rounded" id="dialog-rounded">
-  //     <form method="dialog">
-  //       <p class="title">Rounded dialog</p>
-  //       <p>Alert: this is a dialog.</p>
-  //       <menu class="dialog-menu">
-  //         <button class="nes-btn">Cancel</button>
-  //         <button class="nes-btn is-primary">Confirm</button>
-  //       </menu>
-  //     </form>
-  //   </dialog>
-  // </section>
-
   render(): React.ReactNode {
     const open = this.props.notificationStore!.isOpenLoginDialog
     const isKeeper = this.props.keeperStore!.isBrowserSupportsWavesKeeper
@@ -124,11 +80,11 @@ export default class SignDialog extends React.Component <IProps> {
           </div>
           <div className={'login-method'}>
             <button className={'nes-btn is-primary wide-btn'} onClick={this.handleSignWithExchangeSeed}>Sign in with Exchange(Seed)</button>
-            <div>The network will be MainNet by default<br/></div>
+            <div>The network will be TestNet by default<br/></div>
           </div>
           <div className={'login-method'}>
             <button className={'nes-btn is-primary wide-btn'} onClick={this.handleSignWithExchangeMail}>Sign in with Exchange(Email)</button>
-            <div>The network will be MainNet by default<br/></div>
+            <div>The network will be TestNet by default<br/></div>
           </div>
         </div>
       </div>

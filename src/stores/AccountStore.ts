@@ -31,7 +31,7 @@ class AccountStore extends SubStore {
       await this.rootStore.dappStore.update.call(this.rootStore.dappStore)
       if (this.initialStake === 0) {
         const txs = await this.getAccountTxs()
-        if (txs.length) {
+        if (txs && txs.length) {
           this.initialStake = txs.pop().payment[0].amount
         }
       }

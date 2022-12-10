@@ -34,8 +34,8 @@ class StakeComponent extends React.Component<IProps, IState> {
       return
     }
     await this.props.dappStore!.callCallableFunction('stake', [], [{
-      amount: +(this.state.value * 1e8).toFixed(0),
-      assetId: 'WAVES'
+      amount: +(+this.state.value * 1e8).toFixed(0),
+      assetId: 'WAVES',
     }])
   }
 

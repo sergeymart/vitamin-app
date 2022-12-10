@@ -84,7 +84,7 @@ class DappStore extends SubStore {
     if (!this.rootStore.accountStore.network) return
     const server = this.rootStore.accountStore.network.server
     const { height } = await fetch(`${checkSlash(server)}blocks/height`).then(r => r.json())
-    const path = `${checkSlash(server)}assets/${STK_WAVES_ASSET_ID}/distribution/${height - 5}/limit/1000`
+    const path = `${checkSlash(server)}assets/${STK_WAVES_ASSET_ID}/distribution/${height - 1}/limit/1000`
     const { items } = await fetch(path).then(r => r.json())
     return +Object.entries(items).length
   }
