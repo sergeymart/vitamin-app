@@ -17,10 +17,11 @@ class AccountStore extends SubStore {
   @observable network: INetwork | null = null
   @observable address: string | null = null
   @observable loginType: ELoginType | null = null
+  @observable initialStake: number = 0
 
   constructor(rootStore: RootStore) {
     super(rootStore)
-    setInterval(this.updateAssets, 10000)
+    setInterval(this.updateAssets, 20000)
     autorun(this.updateAssets)
   }
 
@@ -28,7 +29,12 @@ class AccountStore extends SubStore {
     if (this.address) {
       await this.updateAccountAssets(this.address)
       await this.rootStore.dappStore.update.call(this.rootStore.dappStore)
-      // this.getAccountTxs() // @todo
+      if (this.initialStake === 0) {
+        const txs = await this.getAccountTxs()
+        if (txs.length) {
+          this.initialStake = txs.pop().payment[0].amount
+        }
+      }
     }
   }
 
@@ -91,12 +97,22 @@ class AccountStore extends SubStore {
         ({ ...acc, [assetId]: { assetId, decimals, balance, quantity, name } }), {}),
     }
   }
-  @action
+
   async getAccountTxs() {
     if (!this.network) return
-    const path = `${checkSlash(DATA_SERVICE_URL)}v0/transactions/invoke-script?sender=${this.address}&dapp=${STK_WAVES_CONTRACT}&sort=desc&limit=100`
-    const resp = await fetch(path)
-    console.log(resp)
+    try {
+      const path = `${checkSlash(DATA_SERVICE_URL)}v0/transactions/invoke-script?sender=${this.address}&dapp=${STK_WAVES_CONTRACT}&sort=desc&limit=100`
+      const resp = await fetch(path).then(res => res.json())
+      if (resp.data.length) {
+        return resp.data
+          .map((r: any) => r.data)
+      }
+    } catch (e) {
+      return []
+    }
+  }
+
+  async enrichTxs() {
   }
 
   getNetworkByAddress = (address: string): INetwork | null => {

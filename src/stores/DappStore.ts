@@ -17,9 +17,6 @@ interface IPayment {
   amount: number
 }
 
-// https://nodes-testnet.wavesnodes.com/transactions/info/6GXYoHHkHzpYq94pXYaQsSgMVkedwgFnp1VJEiqeRqFz
-// https://api-testnet.wavesplatform.com/v0/transactions/invoke-script?sender=3N1WbxZTdjLm3L8faJGiCTRk3kfaAofzd16&dapp=3MsN1Q6UqKokdBUxv9Azrh5CGSAQ3UQzTsu&sort=desc&limit=100
-
 class DappStore extends SubStore {
 
   @observable rate: number = 1
@@ -27,6 +24,8 @@ class DappStore extends SubStore {
   @observable wavesRate: number = 0
   @observable totalStaked: number = 0
   @observable apr: number = 0
+
+  data: Record<string, number> = {}
 
   constructor(rootStore: RootStore) {
     super(rootStore)
@@ -38,6 +37,7 @@ class DappStore extends SubStore {
   async update() {
     try {
       if (!this.rootStore.accountStore.network) return
+      await this.getData()
       this.rate = await this.getRate() as number
       this.stakers = await this.getStakersNum() as number
       this.totalStaked = await this.getTotalStaked() as number
@@ -49,6 +49,34 @@ class DappStore extends SubStore {
 
   @computed get stkWavesRate() {
     return this.wavesRate * this.rate
+  }
+
+  async getData() {
+    if (!this.rootStore.accountStore.network) return
+    const server = this.rootStore.accountStore.network.server
+    const path = `${checkSlash(server)}addresses/data/${STK_WAVES_CONTRACT}`
+    const [{ value: lastRate }, { value: growthRate }, { value: lastCompoundTime }, { value: balance }] = await fetch(path, {
+      method: 'POST',
+      headers: {
+        'Accept': 'application/json',
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        keys: [
+          'k_lastRate',
+          'k_growthRate',
+          'k_lastCompoundTime',
+          'k_balance',
+        ],
+      }),
+    }).then(r => r.json())
+
+    this.data = {
+      lastRate,
+      growthRate,
+      lastCompoundTime,
+      balance,
+    }
   }
 
   @action
@@ -64,43 +92,22 @@ class DappStore extends SubStore {
   @action
   async getTotalStaked() {
     if (!this.rootStore.accountStore.network) return
-    const server = this.rootStore.accountStore.network.server
-    const { value } = await fetch(`${checkSlash(server)}addresses/data/${STK_WAVES_CONTRACT}/k_balance`).then(r => r.json())
-    return +value
+    return +this.data.balance
   }
 
   @action
   async getApr() {
     if (!this.rootStore.accountStore.network) return
-    const server = this.rootStore.accountStore.network.server
-    const { value } = await fetch(`${checkSlash(server)}addresses/data/${STK_WAVES_CONTRACT}/k_growthRate`).then(r => r.json())
-    return +(+(value || 0) * 86400 / PRECISION)
+    return +(+(this.data.growthRate || 0) * 86400 * 365 / PRECISION)
   }
 
   @action
   async getRate() {
     if (!this.rootStore.accountStore.network) return
-    const server = this.rootStore.accountStore.network.server
-    const path = `${checkSlash(server)}addresses/data/${STK_WAVES_CONTRACT}`
-    const [{ value: lastRate }, { value: growthRate }, { value: lastCompoundTime }] = await fetch(path, {
-      method: 'POST',
-      headers: {
-        'Accept': 'application/json',
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        keys: [
-          'k_lastRate',
-          'k_growthRate',
-          'k_lastCompoundTime',
-        ],
-      }),
-    }).then(r => r.json())
-
+    const { lastCompoundTime, growthRate, lastRate } = this.data
     const now = Math.floor(Date.now() / 1000)
     const dt = now > lastCompoundTime + 86400 ? 86400 : now - lastCompoundTime
-    const rate = new BigNumber(growthRate).times(dt).plus(lastRate).div(PRECISION).toNumber()
-    return rate
+    return new BigNumber(growthRate).times(dt).plus(lastRate).div(PRECISION).toNumber()
   }
 
   @action
@@ -119,8 +126,7 @@ class DappStore extends SubStore {
         ],
       }),
     }).then(r => r.json())
-    const rate = 1 / (waves / usdn / 100)
-    this.wavesRate = rate
+    this.wavesRate = 1 / (waves / usdn / 100)
   }
 
   callCallableFunction = (func: 'stake' | 'unstake', args: IArgument[], payment: IPayment[]) => {
